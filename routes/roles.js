@@ -1,38 +1,15 @@
 var express = require('express');
 var router = express.Router();
-var Product = require('../models/Product');
+var Role = require('../models/Role');
 
-/* GET products listing với filter */
+/* GET - Lấy tất cả roles (không bị xoá mềm) */
 router.get('/', async function(req, res, next) {
   try {
-    let { title, maxPrice, minPrice, slug } = req.query;
-    
-    // Build query filter
-    let filter = {};
-    
-    // Filter theo title (regex includes, case-insensitive)
-    if (title) {
-      filter.title = { $regex: title, $options: 'i' };
-    }
-    
-    // Filter theo price range
-    if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = parseFloat(minPrice);
-      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
-    }
-    
-    // Filter theo slug (exact match)
-    if (slug) {
-      filter.slug = slug;
-    }
-    
-    let products = await Product.find(filter);
-    
+    let roles = await Role.find({ isDeleted: false });
     res.json({
       success: true,
-      data: products,
-      total: products.length
+      data: roles,
+      total: roles.length
     });
   } catch (error) {
     res.status(500).json({
@@ -42,21 +19,21 @@ router.get('/', async function(req, res, next) {
   }
 });
 
-/* GET product by id */
+/* GET - Lấy role theo id */
 router.get('/:id', async function(req, res, next) {
   try {
-    let product = await Product.findById(req.params.id);
-    
-    if (!product) {
+    let role = await Role.findOne({ _id: req.params.id, isDeleted: false });
+
+    if (!role) {
       return res.status(404).json({
         success: false,
-        message: 'Product not found'
+        message: 'Role not found'
       });
     }
-    
+
     res.json({
       success: true,
-      data: product
+      data: role
     });
   } catch (error) {
     res.status(500).json({
@@ -66,13 +43,13 @@ router.get('/:id', async function(req, res, next) {
   }
 });
 
-/* POST - Thêm product mới */
+/* POST - Tạo role mới */
 router.post('/', async function(req, res, next) {
   try {
-    let product = await Product.create(req.body);
+    let role = await Role.create(req.body);
     res.status(201).json({
       success: true,
-      data: product
+      data: role
     });
   } catch (error) {
     res.status(400).json({
@@ -82,25 +59,25 @@ router.post('/', async function(req, res, next) {
   }
 });
 
-/* PUT - Cập nhật product */
+/* PUT - Cập nhật role */
 router.put('/:id', async function(req, res, next) {
   try {
-    let product = await Product.findByIdAndUpdate(
-      req.params.id,
+    let role = await Role.findOneAndUpdate(
+      { _id: req.params.id, isDeleted: false },
       req.body,
       { new: true, runValidators: true }
     );
-    
-    if (!product) {
+
+    if (!role) {
       return res.status(404).json({
         success: false,
-        message: 'Product not found'
+        message: 'Role not found'
       });
     }
-    
+
     res.json({
       success: true,
-      data: product
+      data: role
     });
   } catch (error) {
     res.status(400).json({
@@ -110,21 +87,25 @@ router.put('/:id', async function(req, res, next) {
   }
 });
 
-/* DELETE - Xóa product */
+/* DELETE - Xoá mềm role */
 router.delete('/:id', async function(req, res, next) {
   try {
-    let product = await Product.findByIdAndDelete(req.params.id);
-    
-    if (!product) {
+    let role = await Role.findOneAndUpdate(
+      { _id: req.params.id, isDeleted: false },
+      { isDeleted: true },
+      { new: true }
+    );
+
+    if (!role) {
       return res.status(404).json({
         success: false,
-        message: 'Product not found'
+        message: 'Role not found'
       });
     }
-    
+
     res.json({
       success: true,
-      message: 'Product deleted successfully'
+      message: 'Role deleted successfully (soft delete)'
     });
   } catch (error) {
     res.status(500).json({
